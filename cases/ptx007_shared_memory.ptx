@@ -1,0 +1,51 @@
+//
+// PTX007: a static shared-memory tile larger than a block is allowed to have.
+// On sm_86 the limit is 99 KB per block, so this kernel fails to launch.
+//
+// Hand-written. The raw nvptx64-nvidia-cuda target has no way to declare
+// shared memory from Rust — `#[link_section = ".shared"]` produces a `.global`
+// array instead — so unlike the other cases this one is not generated from
+// fixtures/examples/. Frameworks with their own backend (rust-cuda's cuda_std,
+// cuda-oxide) do emit real `.shared`, and this is the shape they emit.
+//
+.version 8.0
+.target sm_86
+.address_size 64
+
+.visible .entry shared_memory(
+	.param .u64 .ptr .align 4 shared_memory_param_0,
+	.param .u64 .ptr .align 4 shared_memory_param_1,
+	.param .u32 shared_memory_param_2
+)
+{
+	.reg .pred 	%p<2>;
+	.reg .b32 	%r<8>;
+	.reg .f32 	%f<4>;
+	.reg .b64 	%rd<8>;
+	// 128 KB, well past the 99 KB per-block limit on sm_86.
+	.shared .align 4 .b8 	tile[131072];
+
+	ld.param.u64 	%rd1, [shared_memory_param_0];
+	ld.param.u64 	%rd2, [shared_memory_param_1];
+	ld.param.u32 	%r1, [shared_memory_param_2];
+	mov.u32 	%r2, %ctaid.x;
+	mov.u32 	%r3, %ntid.x;
+	mov.u32 	%r4, %tid.x;
+	mad.lo.s32 	%r5, %r2, %r3, %r4;
+	setp.ge.u32 	%p1, %r5, %r1;
+	@%p1 bra 	$L__BB0_2;
+
+	cvta.to.global.u64 	%rd3, %rd1;
+	mul.wide.u32 	%rd4, %r5, 4;
+	add.s64 	%rd5, %rd3, %rd4;
+	ld.global.f32 	%f1, [%rd5];
+	st.shared.f32 	[tile], %f1;
+	bar.sync 	0;
+	ld.shared.f32 	%f2, [tile+4];
+	cvta.to.global.u64 	%rd6, %rd2;
+	add.s64 	%rd7, %rd6, %rd4;
+	st.global.f32 	[%rd7], %f2;
+
+$L__BB0_2:
+	ret;
+}

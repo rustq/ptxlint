@@ -1,0 +1,15 @@
+// A `ptxas -v` log for ptx006_low_occupancy.ptx, replayed with
+// --ptxas-report. Hand-written in the format ptxas prints, not captured from a
+// run: this repository has no CUDA toolkit.
+//
+// 200 registers per thread is the point of this case: registers are allocated
+// 256 per warp, so 200 of them leaves room for only 10 warps of the 64 an
+// sm_70 SM can hold, and a 256-thread block needs 8 of those warps.
+//
+//     ptxas -v -arch=sm_70 cases/ptx006_low_occupancy.ptx -o /dev/null
+//
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function 'low_occupancy' for 'sm_70'
+ptxas info    : Function properties for low_occupancy
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 200 registers, 380 bytes cmem[0]

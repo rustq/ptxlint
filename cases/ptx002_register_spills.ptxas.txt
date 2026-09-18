@@ -1,0 +1,12 @@
+// A `ptxas -v` log for ptx002_register_spills.ptx, replayed with
+// --ptxas-report. Hand-written in the format ptxas prints, not captured from a
+// run: this repository has no CUDA toolkit. Numbers of this order are what a
+// 48-live-value kernel gets on sm_70.
+//
+//     ptxas -v -arch=sm_70 cases/ptx002_register_spills.ptx -o /dev/null
+//
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function 'register_spills' for 'sm_70'
+ptxas info    : Function properties for register_spills
+    96 bytes stack frame, 96 bytes spill stores, 104 bytes spill loads
+ptxas info    : Used 72 registers, 96 bytes spill stores, 104 bytes spill loads, 380 bytes cmem[0]

@@ -39,12 +39,12 @@ jobs:
       - name: Known-good kernels must pass
         run: |
           ./target/release/ptxlint --deny error \
-            tests/fixtures/clean_saxpy.ptx \
-            tests/fixtures/nanoid_fixed.ptx
-      - name: The deliberately broken fixture must still be caught
+            cases/clean_saxpy.ptx \
+            cases/nanoid_regression.ptx
+      - name: The deliberately broken case must still be caught
         run: |
-          if ./target/release/ptxlint --deny error tests/fixtures/local_array.ptx; then
-            echo "expected ptxlint to fail on the broken fixture"
+          if ./target/release/ptxlint --deny error cases/ptx001_local_memory.ptx; then
+            echo "expected ptxlint to fail on the broken case"
             exit 1
           fi
 

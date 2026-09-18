@@ -11,15 +11,39 @@ name = "clean_saxpy"
 crate-type = ["cdylib"]
 
 [[example]]
-name = "fp64_literals"
+name = "ptx001_local_memory"
 crate-type = ["cdylib"]
 
 [[example]]
-name = "local_array"
+name = "ptx003_fp64_literals"
 crate-type = ["cdylib"]
 
 [[example]]
-name = "libdevice_calls"
+name = "ptx004_integer_division"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "ptx005_register_pressure"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "ptx008_narrow_access"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "ptx009_launch_bounds"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "ptx010_uninlined_calls"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "ptx002_register_spills"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "ptx006_low_occupancy"
 crate-type = ["cdylib"]
 
 [profile.release]

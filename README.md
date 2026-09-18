@@ -28,22 +28,35 @@ $ ptxlint kernels.ptx                   # a file, a directory, or - for stdin
 $ ptxlint --deny error kernels.ptx      # exit 1 on errors, as a CI gate
 $ ptxlint --json kernels.ptx            # machine-readable
 $ ptxlint --ptxas kernels.ptx           # exact register counts, if CUDA is installed
+$ ptxlint --ptxas-report build.log kernels.ptx   # or replay a saved `ptxas -v` log
 ```
 
 ## Lints
 
-| | | |
-|---|---|---|
-| `PTX001` | local memory in use — an array indexed by a runtime value, backed by DRAM | 用到 local memory，运行时下标的数组实际落在显存里 |
-| `PTX002` | register spills, needs `--ptxas` | 寄存器溢出，需要 `--ptxas` |
-| `PTX003` | `FP64` instructions — in Rust a bare `0.5` is `f64` | `FP64` 指令 —— Rust 里裸写的 `0.5` 是 `f64` |
-| `PTX004` | integer `div`/`rem` — GPUs have no integer divider | 整数除法取模 —— GPU 没有整数除法器 |
-| `PTX005` | high register pressure | 寄存器压力过高 |
-| `PTX006` | low estimated occupancy | 估算占用率过低 |
-| `PTX007` | shared memory over budget, or capping residency | shared memory 超限或压制驻留块数 |
-| `PTX008` | narrow, non-vectorised global accesses | 窄的、未向量化的 global 访问 |
-| `PTX009` | no `.maxntid`/`.reqntid` launch bounds | 没有 launch bounds |
-| `PTX010` | calls that were not inlined | 没有被内联的调用 |
+Every lint has a runnable case in [`cases/`](cases), compiled from the Rust kernel linked beside it. Run one with `ptxlint cases/ptx001_local_memory.ptx`.
+
+每条 lint 都有一个可运行的用例，放在 [`cases/`](cases) 下，由旁边链接的 Rust kernel 编译而来。单独跑一个：`ptxlint cases/ptx001_local_memory.ptx`。
+
+| | | | Case | Kernel |
+|---|---|---|---|---|
+| `PTX001` | local memory in use — an array indexed by a runtime value, backed by DRAM | 用到 local memory，运行时下标的数组实际落在显存里 | [ptx001](cases/ptx001_local_memory.ptx) | [rs](fixtures/examples/ptx001_local_memory.rs) |
+| `PTX002` | register spills, needs `--ptxas` | 寄存器溢出，需要 `--ptxas` | [ptx002](cases/ptx002_register_spills.ptx) | [rs](fixtures/examples/ptx002_register_spills.rs) |
+| `PTX003` | `FP64` instructions — in Rust a bare `0.5` is `f64` | `FP64` 指令 —— Rust 里裸写的 `0.5` 是 `f64` | [ptx003](cases/ptx003_fp64_literals.ptx) | [rs](fixtures/examples/ptx003_fp64_literals.rs) |
+| `PTX004` | integer `div`/`rem` — GPUs have no integer divider | 整数除法取模 —— GPU 没有整数除法器 | [ptx004](cases/ptx004_integer_division.ptx) | [rs](fixtures/examples/ptx004_integer_division.rs) |
+| `PTX005` | high register pressure | 寄存器压力过高 | [ptx005](cases/ptx005_register_pressure.ptx) | [rs](fixtures/examples/ptx005_register_pressure.rs) |
+| `PTX006` | low estimated occupancy | 估算占用率过低 | [ptx006](cases/ptx006_low_occupancy.ptx) | [rs](fixtures/examples/ptx006_low_occupancy.rs) |
+| `PTX007` | shared memory over budget, or capping residency | shared memory 超限或压制驻留块数 | [ptx007](cases/ptx007_shared_memory.ptx) | hand-written |
+| `PTX008` | narrow, non-vectorised global accesses | 窄的、未向量化的 global 访问 | [ptx008](cases/ptx008_narrow_access.ptx) | [rs](fixtures/examples/ptx008_narrow_access.rs) |
+| `PTX009` | no `.maxntid`/`.reqntid` launch bounds | 没有 launch bounds | [ptx009](cases/ptx009_launch_bounds.ptx) | [rs](fixtures/examples/ptx009_launch_bounds.rs) |
+| `PTX010` | calls that were not inlined | 没有被内联的调用 | [ptx010](cases/ptx010_uninlined_calls.ptx) | [rs](fixtures/examples/ptx010_uninlined_calls.rs) |
+
+`cases/` also holds [clean_saxpy](cases/clean_saxpy.ptx) as the control that must report nothing, [modern_tensor_cores](cases/modern_tensor_cores.ptx) for `wmma`/`cp.async`, and [nanoid_regression](cases/nanoid_regression.ptx), a kernel this tool found a real bug in.
+
+`cases/` 下还有三个非 lint 用例：[clean_saxpy](cases/clean_saxpy.ptx) 是必须零报告的对照组，[modern_tensor_cores](cases/modern_tensor_cores.ptx) 覆盖 `wmma`/`cp.async`，[nanoid_regression](cases/nanoid_regression.ptx) 是本工具真实抓到过 bug 的那个 kernel。
+
+PTX002 and PTX006 need register counts that only exist after ptxas, so their cases ship with a `.ptxas.txt` log replayed through `--ptxas-report`. PTX007 is hand-written because the raw `nvptx64` target gives Rust no way to declare shared memory.
+
+PTX002 与 PTX006 依赖只有 ptxas 才能给出的寄存器数，所以这两个用例附带 `.ptxas.txt` 日志，通过 `--ptxas-report` 回放。PTX007 是手写的，因为裸 `nvptx64` 目标下 Rust 无法声明 shared memory。
 
 ## Accuracy
 

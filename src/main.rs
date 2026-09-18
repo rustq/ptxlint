@@ -15,6 +15,8 @@ OPTIONS:
     --arch <sm_XX>       Override the target architecture (default: .target in the file)
     --block-size <N>     Threads per block for the occupancy model (default: launch bounds, else 256)
     --ptxas              Use `ptxas -v` for exact register counts and spills
+    --ptxas-report <F>   Read a saved `ptxas -v` log instead of running ptxas, for when
+                         the build machine has CUDA and the lint job does not
     --deny <LEVEL|CODE>  Exit non-zero on error|warning|info|all or a code such as PTX003
                          (repeatable; default: never fails)
     --json               Machine-readable output
@@ -39,6 +41,7 @@ struct Args {
     paths: Vec<String>,
     opts: Options,
     use_ptxas: bool,
+    ptxas_report: Option<String>,
     deny: Vec<String>,
     json: bool,
     color: bool,
@@ -53,6 +56,7 @@ fn parse_args() -> Result<Args, String> {
             ptxas: BTreeMap::new(),
         },
         use_ptxas: false,
+        ptxas_report: None,
         deny: vec![],
         json: false,
         color: std::io::stdout().is_terminal(),
@@ -71,6 +75,9 @@ fn parse_args() -> Result<Args, String> {
             "--json" => a.json = true,
             "--no-color" => a.color = false,
             "--ptxas" => a.use_ptxas = true,
+            "--ptxas-report" => {
+                a.ptxas_report = Some(it.next().ok_or("--ptxas-report needs a value")?)
+            }
             "--arch" => {
                 let v = it.next().ok_or("--arch needs a value")?;
                 if Arch::lookup(&v).is_none() {
@@ -147,6 +154,23 @@ fn main() {
     let mut reports = vec![];
     let mut had_io_error = false;
 
+    // A `ptxas -v` log saved on a machine that has CUDA, applied to every file.
+    let mut saved_report = BTreeMap::new();
+    if let Some(p) = &args.ptxas_report {
+        match std::fs::read_to_string(p) {
+            Ok(text) => {
+                saved_report = ptxlint::ptxas::parse_verbose(&text);
+                if saved_report.is_empty() {
+                    eprintln!("ptxlint: {p}: no kernels found in the ptxas report");
+                }
+            }
+            Err(e) => {
+                eprintln!("ptxlint: {p}: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+
     for path in collect(&args.paths) {
         let display = path.display().to_string();
         let src = if display == "-" {
@@ -173,7 +197,7 @@ fn main() {
         let mut opts = Options {
             arch: args.opts.arch.clone(),
             block_size: args.opts.block_size,
-            ptxas: BTreeMap::new(),
+            ptxas: saved_report.clone(),
         };
         if args.use_ptxas && display != "-" {
             let target = args
