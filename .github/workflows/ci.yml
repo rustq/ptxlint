@@ -28,12 +28,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
-      - name: Lint a known-good kernel
-        run: ./target/release/ptxlint --deny error tests/fixtures/nanoid_fixed.ptx
-      - name: The deliberately broken fixtures must still be caught
+      - name: Known-good kernels must pass
         run: |
-          if ./target/release/ptxlint --deny error tests/fixtures/rust_kernels.ptx; then
-            echo "expected ptxlint to fail on the broken fixtures"
+          ./target/release/ptxlint --deny error \
+            tests/fixtures/clean_saxpy.ptx \
+            tests/fixtures/nanoid_fixed.ptx
+      - name: The deliberately broken fixture must still be caught
+        run: |
+          if ./target/release/ptxlint --deny error tests/fixtures/local_array.ptx; then
+            echo "expected ptxlint to fail on the broken fixture"
             exit 1
           fi
 
@@ -46,5 +49,5 @@ jobs:
         with:
           targets: nvptx64-nvidia-cuda
           components: llvm-bitcode-linker, llvm-tools
-      - run: cargo build --release
+      - run: cargo build --release --examples
         working-directory: fixtures

@@ -1,9 +1,25 @@
 [package]
 name = "ptxlint-fixtures"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
+publish = false
 
-[lib]
+# Each example compiles to its own .ptx module, so every lint gets an
+# isolated fixture instead of sharing one file.
+[[example]]
+name = "clean_saxpy"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "fp64_literals"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "local_array"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "libdevice_calls"
 crate-type = ["cdylib"]
 
 [profile.release]

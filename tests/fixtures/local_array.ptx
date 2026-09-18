@@ -6,65 +6,15 @@
 .target sm_70
 .address_size 64
 
-	// .globl	bad_f64_literals        // -- Begin function bad_f64_literals
-.extern .func  (.param .b32 func_retval0) __nv_sinf
-(
-	.param .b32 __nv_sinf_param_0
-)
-;
-.extern .func  (.param .b32 func_retval0) __nv_sqrtf
-(
-	.param .b32 __nv_sqrtf_param_0
-)
-;
-                                        // @bad_f64_literals
-.visible .entry bad_f64_literals(
-	.param .u64 .ptr .align 1 bad_f64_literals_param_0,
-	.param .u64 .ptr .align 1 bad_f64_literals_param_1,
-	.param .u32 bad_f64_literals_param_2
+	// .globl	local_array             // -- Begin function local_array
+                                        // @local_array
+.visible .entry local_array(
+	.param .u64 .ptr .align 1 local_array_param_0,
+	.param .u64 .ptr .align 1 local_array_param_1,
+	.param .u32 local_array_param_2
 )
 {
-	.reg .pred 	%p<2>;
-	.reg .b32 	%r<8>;
-	.reg .b64 	%rd<14>;
-
-// %bb.0:
-	ld.param.b64 	%rd3, [bad_f64_literals_param_0];
-	cvta.to.global.u64 	%rd1, %rd3;
-	ld.param.b64 	%rd4, [bad_f64_literals_param_1];
-	cvta.to.global.u64 	%rd2, %rd4;
-	ld.param.b32 	%r2, [bad_f64_literals_param_2];
-	mov.u32 	%r3, %ctaid.x;
-	mov.u32 	%r4, %ntid.x;
-	mov.u32 	%r5, %tid.x;
-	mad.lo.s32 	%r1, %r3, %r4, %r5;
-	setp.ge.u32 	%p1, %r1, %r2;
-	@%p1 bra 	$L__BB0_2;
-// %bb.1:
-	mul.wide.u32 	%rd5, %r1, 4;
-	add.s64 	%rd6, %rd1, %rd5;
-	ld.global.b32 	%r6, [%rd6];
-	cvt.f64.f32 	%rd7, %r6;
-	mul.rn.f64 	%rd8, %rd7, 0d3FE0000000000000;
-	mul.rn.f64 	%rd9, %rd7, %rd7;
-	add.rn.f64 	%rd10, %rd9, 0d3FF0000000000000;
-	rcp.rn.f64 	%rd11, %rd10;
-	add.rn.f64 	%rd12, %rd8, %rd11;
-	add.s64 	%rd13, %rd2, %rd5;
-	cvt.rn.f32.f64 	%r7, %rd12;
-	st.global.b32 	[%rd13], %r7;
-$L__BB0_2:
-	ret;
-                                        // -- End function
-}
-	// .globl	bad_local_array         // -- Begin function bad_local_array
-.visible .entry bad_local_array(
-	.param .u64 .ptr .align 1 bad_local_array_param_0,
-	.param .u64 .ptr .align 1 bad_local_array_param_1,
-	.param .u32 bad_local_array_param_2
-)                                       // @bad_local_array
-{
-	.local .align 4 .b8 	__local_depot1[256];
+	.local .align 4 .b8 	__local_depot0[256];
 	.reg .b64 	%SP;
 	.reg .b64 	%SPL;
 	.reg .pred 	%p<4>;
@@ -72,19 +22,19 @@ $L__BB0_2:
 	.reg .b64 	%rd<43>;
 
 // %bb.0:
-	mov.b64 	%SPL, __local_depot1;
-	ld.param.b64 	%rd4, [bad_local_array_param_0];
+	mov.b64 	%SPL, __local_depot0;
+	ld.param.b64 	%rd4, [local_array_param_0];
 	cvta.to.global.u64 	%rd1, %rd4;
-	ld.param.b64 	%rd5, [bad_local_array_param_1];
+	ld.param.b64 	%rd5, [local_array_param_1];
 	cvta.to.global.u64 	%rd2, %rd5;
-	ld.param.b32 	%r2, [bad_local_array_param_2];
+	ld.param.b32 	%r2, [local_array_param_2];
 	add.u64 	%rd3, %SPL, 0;
 	mov.u32 	%r3, %ctaid.x;
 	mov.u32 	%r4, %ntid.x;
 	mov.u32 	%r5, %tid.x;
 	mad.lo.s32 	%r1, %r3, %r4, %r5;
 	setp.ge.u32 	%p1, %r1, %r2;
-	@%p1 bra 	$L__BB1_2;
+	@%p1 bra 	$L__BB0_2;
 // %bb.1:
 	mul.wide.u32 	%rd6, %r1, 4;
 	add.s64 	%rd7, %rd1, %rd6;
@@ -270,94 +220,7 @@ $L__BB0_2:
 	add.rn.f32 	%r85, %r83, %r84;
 	add.s64 	%rd42, %rd2, %rd6;
 	st.global.b32 	[%rd42], %r85;
-$L__BB1_2:
-	ret;
-                                        // -- End function
-}
-	// .globl	good_saxpy              // -- Begin function good_saxpy
-.visible .entry good_saxpy(
-	.param .f32 good_saxpy_param_0,
-	.param .u64 .ptr .align 1 good_saxpy_param_1,
-	.param .u64 .ptr .align 1 good_saxpy_param_2,
-	.param .u32 good_saxpy_param_3
-)                                       // @good_saxpy
-{
-	.reg .pred 	%p<2>;
-	.reg .b32 	%r<11>;
-	.reg .b64 	%rd<8>;
-
-// %bb.0:
-	ld.param.b64 	%rd3, [good_saxpy_param_1];
-	cvta.to.global.u64 	%rd1, %rd3;
-	ld.param.b64 	%rd4, [good_saxpy_param_2];
-	cvta.to.global.u64 	%rd2, %rd4;
-	ld.param.b32 	%r3, [good_saxpy_param_3];
-	mov.u32 	%r4, %ctaid.x;
-	mov.u32 	%r5, %ntid.x;
-	mov.u32 	%r6, %tid.x;
-	mad.lo.s32 	%r1, %r4, %r5, %r6;
-	setp.ge.u32 	%p1, %r1, %r3;
-	@%p1 bra 	$L__BB2_2;
-// %bb.1:
-	ld.param.b32 	%r2, [good_saxpy_param_0];
-	mul.wide.u32 	%rd5, %r1, 4;
-	add.s64 	%rd6, %rd1, %rd5;
-	ld.global.b32 	%r7, [%rd6];
-	mul.rn.f32 	%r8, %r2, %r7;
-	add.s64 	%rd7, %rd2, %rd5;
-	ld.global.b32 	%r9, [%rd7];
-	add.rn.f32 	%r10, %r8, %r9;
-	st.global.b32 	[%rd7], %r10;
-$L__BB2_2:
-	ret;
-                                        // -- End function
-}
-	// .globl	transcendental          // -- Begin function transcendental
-.visible .entry transcendental(
-	.param .u64 .ptr .align 1 transcendental_param_0,
-	.param .u64 .ptr .align 1 transcendental_param_1,
-	.param .u32 transcendental_param_2
-)                                       // @transcendental
-{
-	.reg .pred 	%p<2>;
-	.reg .b32 	%r<11>;
-	.reg .b64 	%rd<8>;
-
-// %bb.0:
-	ld.param.b64 	%rd3, [transcendental_param_0];
-	cvta.to.global.u64 	%rd1, %rd3;
-	ld.param.b64 	%rd4, [transcendental_param_1];
-	cvta.to.global.u64 	%rd2, %rd4;
-	ld.param.b32 	%r2, [transcendental_param_2];
-	mov.u32 	%r3, %ctaid.x;
-	mov.u32 	%r4, %ntid.x;
-	mov.u32 	%r5, %tid.x;
-	mad.lo.s32 	%r1, %r3, %r4, %r5;
-	setp.ge.u32 	%p1, %r1, %r2;
-	@%p1 bra 	$L__BB3_2;
-// %bb.1:
-	mul.wide.u32 	%rd5, %r1, 4;
-	add.s64 	%rd6, %rd1, %rd5;
-	ld.global.b32 	%r6, [%rd6];
-	{ // callseq 0, 0
-	.param .b32 	param0;
-	.param .b32 	retval0;
-	st.param.b32 	[param0], %r6;
-	call.uni (retval0), __nv_sinf, (param0);
-	ld.param.b32 	%r7, [retval0];
-	} // callseq 0
-	abs.f32 	%r8, %r6;
-	{ // callseq 1, 0
-	.param .b32 	param0;
-	.param .b32 	retval0;
-	st.param.b32 	[param0], %r8;
-	call.uni (retval0), __nv_sqrtf, (param0);
-	ld.param.b32 	%r9, [retval0];
-	} // callseq 1
-	add.s64 	%rd7, %rd2, %rd5;
-	mul.rn.f32 	%r10, %r7, %r9;
-	st.global.b32 	[%rd7], %r10;
-$L__BB3_2:
+$L__BB0_2:
 	ret;
                                         // -- End function
 }

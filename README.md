@@ -66,14 +66,12 @@ $ cargo clippy --all-targets -- -D warnings
 
 #### Fixture Kernel Development
 
-The `.ptx` test fixtures are generated from real Rust kernels, and need a nightly toolchain.
+Each case in `fixtures/examples/` is a real Rust kernel that compiles to its own `.ptx`, so a fixture only ever triggers the lint it demonstrates. Regenerating them needs a nightly toolchain.
 
-`.ptx` 测试素材由真实的 Rust kernel 编译产生，需要 nightly 工具链。
+`fixtures/examples/` 下每个用例都是一个真实的 Rust kernel，各自编译出独立的 `.ptx`，因此一份素材只会触发它要演示的那条 lint。重新生成需要 nightly 工具链。
 
 ```shell
-$ cd fixtures
-$ cargo build --release
-$ cp target/nvptx64-nvidia-cuda/release/ptxlint_fixtures.ptx ../tests/fixtures/rust_kernels.ptx
+$ ./fixtures/generate.sh
 ```
 
 ## License
