@@ -1,6 +1,6 @@
 //! Per-kernel resource metrics and an occupancy model.
 
-use crate::parse::{Inst, Kernel, type_bits};
+use crate::parse::{type_bits, Inst, Kernel};
 use std::collections::BTreeMap;
 
 /// Hardware limits per SM. Numbers from the CUDA C Programming Guide's
@@ -212,13 +212,15 @@ fn classify(insts: &[Inst]) -> InstMix {
         if (i.base == "cvt" || i.base == "mov") && i.quals.iter().any(|q| q == "f64") {
             m.fp64 += 1;
         }
-        if is_mem && let Some(space) = i.space() {
-            *m.mem.entry(space.to_string()).or_insert(0) += 1;
-            if space == "global" && matches!(i.base.as_str(), "ld" | "st") {
-                m.global_access += 1;
-                let bytes = type_bits(i.ty().unwrap_or("b32")) / 8 * i.vector_width();
-                if bytes <= 4 {
-                    m.narrow_global += 1;
+        if is_mem {
+            if let Some(space) = i.space() {
+                *m.mem.entry(space.to_string()).or_insert(0) += 1;
+                if space == "global" && matches!(i.base.as_str(), "ld" | "st") {
+                    m.global_access += 1;
+                    let bytes = type_bits(i.ty().unwrap_or("b32")) / 8 * i.vector_width();
+                    if bytes <= 4 {
+                        m.narrow_global += 1;
+                    }
                 }
             }
         }

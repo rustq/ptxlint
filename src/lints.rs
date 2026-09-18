@@ -83,9 +83,7 @@ pub fn run(k: &Kernel, m: &Metrics, occ: &Occupancy, t: &Thresholds) -> Vec<Find
     }
 
     // PTX002 — spills reported by ptxas.
-    if let Some(spill) = m.spill_bytes
-        && spill > 0
-    {
+    if let Some(spill) = m.spill_bytes.filter(|&s| s > 0) {
         out.push(Finding {
             code: "PTX002",
             severity: Severity::Error,
@@ -271,7 +269,7 @@ pub fn run(k: &Kernel, m: &Metrics, occ: &Occupancy, t: &Thresholds) -> Vec<Find
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::metrics::{Options, analyse, occupancy};
+    use crate::metrics::{analyse, occupancy, Options};
     use std::collections::BTreeMap;
 
     fn check(src: &str) -> Vec<Finding> {

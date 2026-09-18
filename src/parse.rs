@@ -78,10 +78,10 @@ impl Inst {
     /// Vector width from a `.v2` / `.v4` / `.v8` qualifier.
     pub fn vector_width(&self) -> u32 {
         for q in &self.quals {
-            if let Some(n) = q.strip_prefix('v')
-                && let Ok(n) = n.parse::<u32>()
-            {
-                return n;
+            if let Some(n) = q.strip_prefix('v') {
+                if let Ok(n) = n.parse::<u32>() {
+                    return n;
+                }
             }
         }
         1
@@ -339,10 +339,10 @@ pub fn parse(src: &str) -> Module {
             }
             b'}' => {
                 depth = depth.saturating_sub(1);
-                if depth == 0
-                    && let Some(k) = cur.take()
-                {
-                    m.kernels.push(k);
+                if depth == 0 {
+                    if let Some(k) = cur.take() {
+                        m.kernels.push(k);
+                    }
                 }
             }
             _ => {
@@ -370,10 +370,10 @@ pub fn parse(src: &str) -> Module {
                     k.reqntid = ntid(&text);
                 } else if text.starts_with(".minnctapersm") {
                     k.minnctapersm = ntid(&text).map(|t| t.0);
-                } else if !text.starts_with('.')
-                    && let Some(i) = parse_inst(&text, ch.line)
-                {
-                    k.insts.push(i);
+                } else if !text.starts_with('.') {
+                    if let Some(i) = parse_inst(&text, ch.line) {
+                        k.insts.push(i);
+                    }
                 }
             }
         }
@@ -393,14 +393,14 @@ fn parse_header(text: &str, line: u32) -> Kernel {
     let after = text.split(".entry").nth(1).unwrap_or("").trim_start();
     let name_end = after.find(['(', ' ', '\t']).unwrap_or(after.len());
     k.name = after[..name_end].trim().to_string();
-    if let (Some(a), Some(b)) = (after.find('('), after.rfind(')'))
-        && b > a
-    {
-        k.params = after[a + 1..b]
-            .split(',')
-            .map(|p| p.trim().to_string())
-            .filter(|p| !p.is_empty())
-            .collect();
+    if let (Some(a), Some(b)) = (after.find('('), after.rfind(')')) {
+        if b > a {
+            k.params = after[a + 1..b]
+                .split(',')
+                .map(|p| p.trim().to_string())
+                .filter(|p| !p.is_empty())
+                .collect();
+        }
     }
     // Header directives such as `.maxntid 256, 1, 1` live after the parameter list.
     let tail = text;

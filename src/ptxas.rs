@@ -57,17 +57,17 @@ pub fn parse_verbose(text: &str) -> RegInfo {
                 let start = a + 1;
                 current = Some(rest[start..start + b].to_string());
             }
-        } else if let Some(i) = line.find("Used ")
-            && let Some(name) = current.clone()
-        {
-            let rest = &line[i + 5..];
-            let regs = rest
-                .split_whitespace()
-                .next()
-                .and_then(|n| n.parse::<u32>().ok())
-                .unwrap_or(0);
-            let spill = spill_bytes(rest);
-            out.insert(name, (regs, spill));
+        } else if let Some(i) = line.find("Used ") {
+            if let Some(name) = current.clone() {
+                let rest = &line[i + 5..];
+                let regs = rest
+                    .split_whitespace()
+                    .next()
+                    .and_then(|n| n.parse::<u32>().ok())
+                    .unwrap_or(0);
+                let spill = spill_bytes(rest);
+                out.insert(name, (regs, spill));
+            }
         }
     }
     out
@@ -78,13 +78,14 @@ fn spill_bytes(rest: &str) -> u64 {
     for part in rest.split(',') {
         let p = part.trim();
         // Count stores only; loads mirror them.
-        if p.contains("spill stores")
-            && let Some(n) = p
+        if p.contains("spill stores") {
+            if let Some(n) = p
                 .split_whitespace()
                 .next()
                 .and_then(|n| n.parse::<u64>().ok())
-        {
-            total += n;
+            {
+                total += n;
+            }
         }
     }
     total

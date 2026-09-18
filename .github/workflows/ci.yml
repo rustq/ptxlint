@@ -20,6 +20,14 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --release
 
+  # Keeps the rust-version in Cargo.toml honest.
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.75.0
+      - run: cargo test --release
+
   # Dogfooding: this runner has no GPU and no CUDA toolkit, which is exactly
   # the situation ptxlint is built for.
   lint-ptx:
