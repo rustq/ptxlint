@@ -50,8 +50,10 @@ jobs:
             # PTX002 and PTX006 need register counts that only ptxas knows.
             report="${ptx%.ptx}.ptxas.txt"
             [[ -f $report ]] && args+=(--ptxas-report "$report")
-            ./target/release/ptxlint "${args[@]}" "$ptx" > /dev/null
-            status=$?
+            # `shell: bash` runs with -e, and a firing lint exits non-zero on
+            # purpose, so the status has to be captured rather than inherited.
+            status=0
+            ./target/release/ptxlint "${args[@]}" "$ptx" > /dev/null || status=$?
             # 1 means the denied lint fired, which is what this case is for.
             # 0 means it stopped firing; anything else is ptxlint itself failing.
             if [[ $status -ne 1 ]]; then
