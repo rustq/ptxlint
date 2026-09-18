@@ -1,0 +1,13 @@
+[package]
+name = "ptxlint"
+version = "0.1.0"
+edition = "2024"
+description = "Static analysis and performance lints for NVIDIA PTX, with no GPU or CUDA install required"
+license = "MIT OR Apache-2.0"
+keywords = ["cuda", "ptx", "gpu", "lint", "nvidia"]
+categories = ["development-tools", "command-line-utilities"]
+
+[dependencies]
+
+[profile.release]
+opt-level = 3

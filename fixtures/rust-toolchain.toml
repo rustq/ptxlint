@@ -1,0 +1,4 @@
+[toolchain]
+channel = "nightly"
+targets = ["nvptx64-nvidia-cuda"]
+components = ["llvm-bitcode-linker", "llvm-tools", "rust-src"]
