@@ -6,6 +6,11 @@ description = "Static analysis and performance lints for NVIDIA PTX, with no GPU
 license = "MIT OR Apache-2.0"
 keywords = ["cuda", "ptx", "gpu", "lint", "nvidia"]
 categories = ["development-tools", "command-line-utilities"]
+repository = "https://github.com/meloalright/ptxlint"
+homepage = "https://github.com/meloalright/ptxlint"
+readme = "README.md"
+authors = ["meloalright"]
+exclude = ["fixtures/target", "/.github"]
 
 [dependencies]
 

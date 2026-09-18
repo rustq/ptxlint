@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --release
+
+  # Dogfooding: this runner has no GPU and no CUDA toolkit, which is exactly
+  # the situation ptxlint is built for.
+  lint-ptx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release
+      - name: Lint a known-good kernel
+        run: ./target/release/ptxlint --deny error tests/fixtures/nanoid_fixed.ptx
+      - name: The deliberately broken fixtures must still be caught
+        run: |
+          if ./target/release/ptxlint --deny error tests/fixtures/rust_kernels.ptx; then
+            echo "expected ptxlint to fail on the broken fixtures"
+            exit 1
+          fi
+
+  # The .ptx fixtures are generated from Rust; make sure that still compiles.
+  build-kernels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: nvptx64-nvidia-cuda
+          components: llvm-bitcode-linker, llvm-tools
+      - run: cargo build --release
+        working-directory: fixtures
