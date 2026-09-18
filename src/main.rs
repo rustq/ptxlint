@@ -24,6 +24,11 @@ OPTIONS:
     --list-lints         Describe every lint and exit
     -h, --help           Show this help
 
+EXIT CODES:
+    0  no denied lint fired
+    1  a denied lint fired
+    2  ptxlint could not run: bad arguments, or a file it could not read
+
 LINTS:
     PTX001  local memory in use (dynamically indexed array)
     PTX002  register spills reported by ptxas
@@ -166,7 +171,7 @@ fn main() {
             }
             Err(e) => {
                 eprintln!("ptxlint: {p}: {e}");
-                std::process::exit(1);
+                std::process::exit(2);
             }
         }
     }
@@ -227,5 +232,13 @@ fn main() {
         .flat_map(|k| &k.findings)
         .any(|f| denied(&args.deny, f.severity, f.code));
 
-    std::process::exit(if violated || had_io_error { 1 } else { 0 });
+    // 0 clean, 1 a denied lint fired, 2 ptxlint itself could not do its job.
+    // Keeping those apart lets a CI check assert "this case still fires".
+    std::process::exit(if had_io_error {
+        2
+    } else if violated {
+        1
+    } else {
+        0
+    });
 }

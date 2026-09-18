@@ -36,17 +36,35 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
-      - name: Known-good kernels must pass
+
+      - name: Report on every case
+        run: ./target/release/ptxlint cases
+
+      - name: Each case must trigger the lint it is named after
+        shell: bash
         run: |
-          ./target/release/ptxlint --deny error \
-            cases/clean_saxpy.ptx \
-            cases/nanoid_regression.ptx
-      - name: The deliberately broken case must still be caught
+          set -u
+          for ptx in cases/ptx*.ptx; do
+            code=$(basename "$ptx" | cut -c1-6 | tr '[:lower:]' '[:upper:]')
+            args=(--deny "$code")
+            # PTX002 and PTX006 need register counts that only ptxas knows.
+            report="${ptx%.ptx}.ptxas.txt"
+            [[ -f $report ]] && args+=(--ptxas-report "$report")
+            ./target/release/ptxlint "${args[@]}" "$ptx" > /dev/null
+            status=$?
+            # 1 means the denied lint fired, which is what this case is for.
+            # 0 means it stopped firing; anything else is ptxlint itself failing.
+            if [[ $status -ne 1 ]]; then
+              echo "::error file=$ptx::expected $code to fire (exit 1), got exit $status"
+              exit 1
+            fi
+            echo "$ptx -> $code"
+          done
+
+      - name: Known-good kernels must stay silent
         run: |
-          if ./target/release/ptxlint --deny error cases/ptx001_local_memory.ptx; then
-            echo "expected ptxlint to fail on the broken case"
-            exit 1
-          fi
+          ./target/release/ptxlint --deny all cases/clean_saxpy.ptx
+          ./target/release/ptxlint --deny error cases/nanoid_regression.ptx
 
   # The .ptx fixtures are generated from Rust; make sure that still compiles.
   build-kernels:

@@ -297,8 +297,9 @@ fn stdin_is_accepted() {
 
 #[test]
 fn a_missing_ptxas_report_is_fatal() {
+    // Exit 2, not 1: a missing report is ptxlint failing, not a lint firing.
     let (_, code) = run(&["--ptxas-report", "nope.txt", "cases/clean_saxpy.ptx"]);
-    assert_eq!(code, 1);
+    assert_eq!(code, 2);
 }
 
 #[test]
@@ -319,6 +320,6 @@ fn bad_input_does_not_panic() {
 #[test]
 fn missing_file_is_an_error_not_a_panic() {
     let out = bin().arg("definitely/not/here.ptx").output().unwrap();
-    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(out.status.code(), Some(2), "an unreadable file is exit 2");
     assert!(String::from_utf8_lossy(&out.stderr).contains("No such file"));
 }
