@@ -1,6 +1,6 @@
 # PTX Lint
 
-[![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-cyan)](https://opensource.org/licenses/MIT) ![rust](https://img.shields.io/badge/rust-stable-lightgreen) ![dependencies](https://img.shields.io/badge/dependencies-0-purple) [![CI](https://github.com/meloalright/ptxlint/actions/workflows/ci.yml/badge.svg)](https://github.com/meloalright/ptxlint/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-cyan)](https://opensource.org/licenses/MIT) ![rust](https://img.shields.io/badge/rust-stable-lightgreen) ![dependencies](https://img.shields.io/badge/dependencies-0-purple) [![CI](https://github.com/meloalright/ptxlint/actions/workflows/ci.yml/badge.svg)](https://github.com/meloalright/ptxlint/actions/workflows/ci.yml)
 
 The `ptxlint` is a static analyser for `NVIDIA PTX`. It reads the `.ptx` your GPU kernels already compile to and reports local memory traffic, `FP64` use, register pressure, shared memory budget and estimated occupancy. It needs no GPU, no `CUDA` install and no dependencies, so a kernel performance regression can fail `CI` on a machine that has never seen a graphics card.
 
@@ -78,4 +78,4 @@ $ cp target/nvptx64-nvidia-cuda/release/ptxlint_fixtures.ptx ../tests/fixtures/r
 
 ## License
 
-[MIT](https://opensource.org/licenses/MIT) OR [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
+[MIT](https://opensource.org/licenses/MIT)
