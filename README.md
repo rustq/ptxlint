@@ -1,6 +1,6 @@
 # PTX Lint
 
-[![license](https://img.shields.io/badge/license-MIT-cyan)](https://opensource.org/licenses/MIT) ![rust](https://img.shields.io/badge/rust-stable-lightgreen) ![dependencies](https://img.shields.io/badge/dependencies-0-purple) [![CI](https://github.com/meloalright/ptxlint/actions/workflows/ci.yml/badge.svg)](https://github.com/meloalright/ptxlint/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-cyan)](https://opensource.org/licenses/MIT) ![rust](https://img.shields.io/badge/rust-stable-lightgreen) ![dependencies](https://img.shields.io/badge/dependencies-0-purple) [![CI](https://github.com/rustq/ptxlint/actions/workflows/ci.yml/badge.svg)](https://github.com/rustq/ptxlint/actions/workflows/ci.yml)
 
 The `ptxlint` is a static analyser for `NVIDIA PTX`. It reads the `.ptx` your GPU kernels already compile to and reports local memory traffic, `FP64` use, register pressure, shared memory budget and estimated occupancy. It needs no GPU, no `CUDA` install and no dependencies, so a kernel performance regression can fail `CI` on a machine that has never seen a graphics card.
 
@@ -9,11 +9,11 @@ The `ptxlint` is a static analyser for `NVIDIA PTX`. It reads the `.ptx` your GP
 ```
 $ ptxlint kernels.ptx
 
-  bad_local_array  line 61
+  local_array  line 5
     arch sm_70   regs/thread 176 (virtual, upper bound)   shared 0 B   local 256 B
     occupancy 12% (8 of 64 warps/SM, 1 blocks/SM @ 256 threads/block; limited by registers)
     198 instructions  ·  fp32 10  ·  int 23  ·  global 65  ·  local 72
-    error   256 bytes of local memory, 72 local accesses — this lives in DRAM, not registers [PTX001:92]
+    error   256 bytes of local memory, 72 local accesses — this lives in DRAM, not registers [PTX001:42]
             An array indexed by a runtime value cannot stay in registers.
 ```
 
