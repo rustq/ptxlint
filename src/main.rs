@@ -17,7 +17,11 @@ OPTIONS:
     --ptxas              Use `ptxas -v` for exact register counts and spills
     --ptxas-report <F>   Read a saved `ptxas -v` log instead of running ptxas, for when
                          the build machine has CUDA and the lint job does not
-    --deny <LEVEL|CODE>  Exit non-zero on error|warning|info|all or a code such as PTX003
+    --baseline <F|DIR>   Compare against an earlier build of the same kernels and report
+                         what got better or worse, instead of linting in isolation
+    --all                In --baseline mode, also list kernels that did not change
+    --deny <LEVEL|CODE>  Exit non-zero on error|warning|info|all or a code such as PTX003,
+                         or `regression` in --baseline mode
                          (repeatable; default: never fails)
     --json               Machine-readable output
     --no-color           Disable ANSI colors
@@ -47,6 +51,8 @@ struct Args {
     opts: Options,
     use_ptxas: bool,
     ptxas_report: Option<String>,
+    baseline: Option<String>,
+    show_all: bool,
     deny: Vec<String>,
     json: bool,
     color: bool,
@@ -62,6 +68,8 @@ fn parse_args() -> Result<Args, String> {
         },
         use_ptxas: false,
         ptxas_report: None,
+        baseline: None,
+        show_all: false,
         deny: vec![],
         json: false,
         color: std::io::stdout().is_terminal(),
@@ -80,6 +88,8 @@ fn parse_args() -> Result<Args, String> {
             "--json" => a.json = true,
             "--no-color" => a.color = false,
             "--ptxas" => a.use_ptxas = true,
+            "--all" => a.show_all = true,
+            "--baseline" => a.baseline = Some(it.next().ok_or("--baseline needs a value")?),
             "--ptxas-report" => {
                 a.ptxas_report = Some(it.next().ok_or("--ptxas-report needs a value")?)
             }
@@ -136,6 +146,11 @@ fn collect(paths: &[String]) -> Vec<PathBuf> {
     out
 }
 
+fn denies_regressions(deny: &[String]) -> bool {
+    deny.iter()
+        .any(|d| d.eq_ignore_ascii_case("regression") || d == "all")
+}
+
 fn denied(deny: &[String], sev: Severity, code: &str) -> bool {
     deny.iter().any(|d| match d.as_str() {
         "all" => true,
@@ -144,6 +159,66 @@ fn denied(deny: &[String], sev: Severity, code: &str) -> bool {
         "info" => true,
         c => c.eq_ignore_ascii_case(code),
     })
+}
+
+/// Read a PTX file (or stdin) and analyse it. `None` means it could not be read.
+fn analyse_path(
+    path: &Path,
+    args: &Args,
+    saved_report: &BTreeMap<String, (u32, u64)>,
+    thresholds: &Thresholds,
+) -> Option<report::FileReport> {
+    let display = path.display().to_string();
+    let src = if display == "-" {
+        let mut s = String::new();
+        match std::io::stdin().read_to_string(&mut s) {
+            Ok(_) => s,
+            Err(e) => {
+                eprintln!("ptxlint: stdin: {e}");
+                return None;
+            }
+        }
+    } else {
+        match std::fs::read_to_string(path) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("ptxlint: {display}: {e}");
+                return None;
+            }
+        }
+    };
+
+    let mut opts = Options {
+        arch: args.opts.arch.clone(),
+        block_size: args.opts.block_size,
+        ptxas: saved_report.clone(),
+    };
+    if args.use_ptxas && display != "-" {
+        let target = args
+            .opts
+            .arch
+            .clone()
+            .or_else(|| ptxlint::parse::parse(&src).target)
+            .unwrap_or_else(|| ptxlint::metrics::DEFAULT_ARCH.to_string());
+        match ptxlint::ptxas::analyse(&display, &target) {
+            Ok(info) => opts.ptxas = info,
+            Err(e) => eprintln!("ptxlint: {display}: {e} (falling back to estimates)"),
+        }
+    }
+    Some(analyse_source(&display, &src, &opts, thresholds))
+}
+
+/// The baseline file that corresponds to `current`: the same name inside a
+/// baseline directory, or the baseline file itself when both are single files.
+fn baseline_for(baseline: &Path, current: &Path, single: bool) -> Option<PathBuf> {
+    if baseline.is_dir() {
+        let candidate = baseline.join(current.file_name()?);
+        candidate.exists().then_some(candidate)
+    } else if single {
+        Some(baseline.to_path_buf())
+    } else {
+        None
+    }
 }
 
 fn main() {
@@ -156,7 +231,6 @@ fn main() {
     };
 
     let thresholds = Thresholds::default();
-    let mut reports = vec![];
     let mut had_io_error = false;
 
     // A `ptxas -v` log saved on a machine that has CUDA, applied to every file.
@@ -176,47 +250,46 @@ fn main() {
         }
     }
 
-    for path in collect(&args.paths) {
-        let display = path.display().to_string();
-        let src = if display == "-" {
-            let mut s = String::new();
-            match std::io::stdin().read_to_string(&mut s) {
-                Ok(_) => s,
-                Err(e) => {
-                    eprintln!("ptxlint: stdin: {e}");
-                    had_io_error = true;
-                    continue;
-                }
-            }
-        } else {
-            match std::fs::read_to_string(&path) {
-                Ok(s) => s,
-                Err(e) => {
-                    eprintln!("ptxlint: {display}: {e}");
-                    had_io_error = true;
-                    continue;
-                }
-            }
-        };
+    let paths = collect(&args.paths);
+    let mut reports = vec![];
+    for path in &paths {
+        match analyse_path(path, &args, &saved_report, &thresholds) {
+            Some(r) => reports.push(r),
+            None => had_io_error = true,
+        }
+    }
 
-        let mut opts = Options {
-            arch: args.opts.arch.clone(),
-            block_size: args.opts.block_size,
-            ptxas: saved_report.clone(),
-        };
-        if args.use_ptxas && display != "-" {
-            let target = args
-                .opts
-                .arch
-                .clone()
-                .or_else(|| ptxlint::parse::parse(&src).target)
-                .unwrap_or_else(|| ptxlint::metrics::DEFAULT_ARCH.to_string());
-            match ptxlint::ptxas::analyse(&display, &target) {
-                Ok(info) => opts.ptxas = info,
-                Err(e) => eprintln!("ptxlint: {display}: {e} (falling back to estimates)"),
+    // --baseline: report what changed instead of the state of one build.
+    if let Some(base) = &args.baseline {
+        let base = Path::new(base);
+        let single = paths.len() == 1;
+        let mut deltas = vec![];
+        for (path, current) in paths.iter().zip(&reports) {
+            let Some(bpath) = baseline_for(base, path, single) else {
+                eprintln!("ptxlint: no baseline for {}", path.display());
+                had_io_error = true;
+                continue;
+            };
+            match analyse_path(&bpath, &args, &saved_report, &thresholds) {
+                Some(b) => deltas.push(ptxlint::diff::compare(&b, current)),
+                None => had_io_error = true,
             }
         }
-        reports.push(analyse_source(&display, &src, &opts, &thresholds));
+        let out = if args.json {
+            report::diff_json(&deltas)
+        } else {
+            report::diff_text(&deltas, args.color, args.show_all)
+        };
+        let _ = std::io::stdout().write_all(out.as_bytes());
+        let blocked =
+            denies_regressions(&args.deny) && deltas.iter().any(|d| d.blocking_regression());
+        std::process::exit(if had_io_error {
+            2
+        } else if blocked {
+            1
+        } else {
+            0
+        });
     }
 
     let out = if args.json {

@@ -6,6 +6,7 @@
 //! required; if `ptxas` happens to be on PATH, the register numbers become
 //! exact instead of estimated.
 
+pub mod diff;
 pub mod lints;
 pub mod metrics;
 pub mod parse;

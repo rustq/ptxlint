@@ -46,5 +46,13 @@ crate-type = ["cdylib"]
 name = "ptx006_low_occupancy"
 crate-type = ["cdylib"]
 
+[[example]]
+name = "diff_before"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "diff_after"
+crate-type = ["cdylib"]
+
 [profile.release]
 opt-level = 3

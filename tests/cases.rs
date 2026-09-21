@@ -171,8 +171,9 @@ fn nanoid_kernel_has_no_local_memory_after_the_fix() {
 /// Nothing in `cases/` may be forgotten by this file.
 #[test]
 fn every_case_file_is_covered() {
-    let tested: Vec<String> = std::fs::read_to_string(file!())
-        .unwrap()
+    // Counts both the case("name") helpers and paths written out in full.
+    let src = std::fs::read_to_string(file!()).unwrap();
+    let mut tested: Vec<String> = src
         .lines()
         .filter_map(|l| {
             l.split("case(\"")
@@ -182,6 +183,11 @@ fn every_case_file_is_covered() {
         .filter_map(|l| l.split('"').next())
         .map(str::to_string)
         .collect();
+    for part in src.split("cases/").skip(1) {
+        if let Some(name) = part.split(".ptx").next() {
+            tested.push(name.to_string());
+        }
+    }
     for entry in std::fs::read_dir("cases").unwrap().flatten() {
         let path = entry.path();
         if path.extension().is_some_and(|e| e == "ptx") {
@@ -189,6 +195,99 @@ fn every_case_file_is_covered() {
             assert!(tested.contains(&stem), "cases/{stem}.ptx has no test");
         }
     }
+}
+
+// --- baseline diff ---------------------------------------------------------
+
+/// `diff_before` and `diff_after` export the same kernel, before and after the
+/// local-memory fix, which is the shape of the bug ptxlint found in nanoid.
+#[test]
+fn a_fix_shows_up_as_an_improvement() {
+    let (out, code) = run(&[
+        "--deny",
+        "regression",
+        "--baseline",
+        "cases/diff_before.ptx",
+        "cases/diff_after.ptx",
+    ]);
+    assert!(out.contains("mix16"));
+    assert!(out.contains("improved"), "{out}");
+    assert!(out.contains("local memory (B)     64 \u{2192} 0"), "{out}");
+    assert!(out.contains("fixed    PTX001"), "{out}");
+    assert!(out.contains("0 regressed, 1 improved"));
+    assert_eq!(code, 0, "an improvement must not fail the build");
+}
+
+#[test]
+fn undoing_the_fix_blocks_the_build() {
+    let (out, code) = run(&[
+        "--deny",
+        "regression",
+        "--baseline",
+        "cases/diff_after.ptx",
+        "cases/diff_before.ptx",
+    ]);
+    assert!(out.contains("regressed (blocking)"), "{out}");
+    assert!(out.contains("new      PTX001"), "{out}");
+    assert_eq!(code, 1);
+
+    // Without --deny the same diff only reports.
+    let (_, code) = run(&[
+        "--baseline",
+        "cases/diff_after.ptx",
+        "cases/diff_before.ptx",
+    ]);
+    assert_eq!(code, 0);
+}
+
+#[test]
+fn an_unchanged_build_is_quiet() {
+    let (out, code) = run(&[
+        "--deny",
+        "regression",
+        "--baseline",
+        "cases/diff_after.ptx",
+        "cases/diff_after.ptx",
+    ]);
+    assert!(out.contains("no change"), "{out}");
+    assert!(out.contains("0 regressed, 0 improved"));
+    assert_eq!(code, 0);
+    // --all lists it anyway.
+    let (out, _) = run(&[
+        "--all",
+        "--baseline",
+        "cases/diff_after.ptx",
+        "cases/diff_after.ptx",
+    ]);
+    assert!(out.contains("unchanged"), "{out}");
+}
+
+#[test]
+fn a_baseline_directory_pairs_by_file_name() {
+    let (out, _) = run(&["--baseline", "cases", "cases/diff_after.ptx"]);
+    // cases/diff_after.ptx against itself inside cases/: nothing moved.
+    assert!(out.contains("no change"), "{out}");
+}
+
+#[test]
+fn a_missing_baseline_is_fatal() {
+    let (_, code) = run(&["--baseline", "nope.ptx", "cases/diff_after.ptx"]);
+    assert_eq!(code, 2);
+}
+
+#[test]
+fn diff_json_is_shaped_correctly() {
+    let (out, _) = run(&[
+        "--json",
+        "--baseline",
+        "cases/diff_after.ptx",
+        "cases/diff_before.ptx",
+    ]);
+    assert!(out.starts_with('{') && out.trim_end().ends_with('}'));
+    assert_eq!(out.matches('{').count(), out.matches('}').count());
+    assert!(out.contains("\"verdict\": \"regressed\""));
+    assert!(out.contains("\"blocking\": true"));
+    assert!(out.contains("\"summary\": {\"regressed\": 1"));
 }
 
 // --- CLI behaviour ---------------------------------------------------------

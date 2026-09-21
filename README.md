@@ -29,6 +29,8 @@ $ ptxlint --deny error kernels.ptx      # exit 1 on errors, as a CI gate
 $ ptxlint --json kernels.ptx            # machine-readable
 $ ptxlint --ptxas kernels.ptx           # exact register counts, if CUDA is installed
 $ ptxlint --ptxas-report build.log kernels.ptx   # or replay a saved `ptxas -v` log
+$ ptxlint --baseline old.ptx new.ptx             # what got better or worse since the last build
+$ ptxlint --deny regression --baseline old/ new/ # fail the build on a regression
 ```
 
 ## Lints
@@ -57,6 +59,26 @@ Every lint has a runnable case in [`cases/`](cases), compiled from the Rust kern
 PTX002 and PTX006 need register counts that only exist after ptxas, so their cases ship with a `.ptxas.txt` log replayed through `--ptxas-report`. PTX007 is hand-written because the raw `nvptx64` target gives Rust no way to declare shared memory.
 
 PTX002 与 PTX006 依赖只有 ptxas 才能给出的寄存器数，所以这两个用例附带 `.ptxas.txt` 日志，通过 `--ptxas-report` 回放。PTX007 是手写的，因为裸 `nvptx64` 目标下 Rust 无法声明 shared memory。
+
+## Baseline diff
+
+A report tells you whether a kernel is bad. Review usually asks something else: did this change make it worse? `--baseline` matches kernels by name across two builds and prints only what moved.
+
+单次报告回答的是「这个 kernel 好不好」，而 review 时真正要问的是「我这次改动把它弄差了吗」。`--baseline` 按 kernel 名字比对两次构建，只打印有变化的部分。
+
+```
+$ ptxlint --baseline cases/diff_before.ptx cases/diff_after.ptx
+
+  mix16  improved
+    ↓ local memory (B)     64 → 0 (-64)
+    ↓ registers/thread     180 → 69 (-111)
+    ↑ occupancy (%)        13 → 38 (+25)
+    fixed    PTX001
+```
+
+Local memory, spills, shared memory and a new error are exact enough to gate a build, so `--deny regression` fails on those; instruction counts and the virtual-register estimate move around too much and are only reported.
+
+local memory、溢出、shared memory 和新增的 error 足够精确，可以用来卡构建，`--deny regression` 就是对这些生效；指令数和虚拟寄存器估算波动太大，只报告不拦截。
 
 ## Accuracy
 

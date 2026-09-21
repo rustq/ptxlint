@@ -63,6 +63,21 @@ jobs:
             echo "$ptx -> $code"
           done
 
+      - name: A regression between two builds must be caught
+        shell: bash
+        run: |
+          set -u
+          # The pair differs only by the local-memory fix.
+          ./target/release/ptxlint --deny regression \
+            --baseline cases/diff_before.ptx cases/diff_after.ptx
+          status=0
+          ./target/release/ptxlint --deny regression \
+            --baseline cases/diff_after.ptx cases/diff_before.ptx > /dev/null || status=$?
+          if [[ $status -ne 1 ]]; then
+            echo "::error::undoing the fix should have failed the build, got exit $status"
+            exit 1
+          fi
+
       - name: Known-good kernels must stay silent
         run: |
           ./target/release/ptxlint --deny all cases/clean_saxpy.ptx

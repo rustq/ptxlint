@@ -233,3 +233,165 @@ pub fn json(files: &[FileReport]) -> String {
     );
     o
 }
+
+// --- diff reporting --------------------------------------------------------
+
+use crate::diff::{FileDelta, Verdict};
+
+fn verdict_color(v: Verdict, on: bool) -> &'static str {
+    if !on {
+        return "";
+    }
+    match v {
+        Verdict::Regressed | Verdict::Removed => "\x1b[31m",
+        Verdict::Improved => "\x1b[32m",
+        Verdict::Added => "\x1b[33m",
+        Verdict::Unchanged => "\x1b[2m",
+    }
+}
+
+pub fn diff_text(deltas: &[FileDelta], color_on: bool, show_all: bool) -> String {
+    let mut o = String::new();
+    let (b, d, r) = if color_on {
+        (BOLD, DIM, RESET)
+    } else {
+        ("", "", "")
+    };
+    let mut regressed = 0;
+    let mut improved = 0;
+
+    for f in deltas {
+        let _ = writeln!(o, "{b}{}{r} {d}vs {}{r}", f.current, f.baseline);
+        let shown: Vec<_> = f
+            .kernels
+            .iter()
+            .filter(|k| show_all || k.changed())
+            .collect();
+        if shown.is_empty() {
+            let _ = writeln!(o, "  {d}no change{r}\n");
+            continue;
+        }
+        for k in shown {
+            match k.verdict {
+                Verdict::Regressed => regressed += 1,
+                Verdict::Improved => improved += 1,
+                _ => {}
+            }
+            let c = verdict_color(k.verdict, color_on);
+            let gate = if k.blocking_regression() {
+                " (blocking)"
+            } else {
+                ""
+            };
+            let _ = writeln!(o, "\n  {b}{}{r}  {c}{}{gate}{r}", k.name, k.verdict.label());
+            for m in &k.metrics {
+                // The arrow is the direction the number moved; the colour says
+                // whether that is good. For occupancy up is good, for
+                // everything else up is bad.
+                let arrow = if m.change() > 0 { "↑" } else { "↓" };
+                let sign = if m.change() > 0 { "+" } else { "" };
+                let mc = if m.is_regression() {
+                    verdict_color(Verdict::Regressed, color_on)
+                } else {
+                    verdict_color(Verdict::Improved, color_on)
+                };
+                let _ = writeln!(
+                    o,
+                    "    {mc}{arrow}{r} {:<20} {} → {} {d}({sign}{}){r}",
+                    m.label,
+                    m.before,
+                    m.after,
+                    m.change()
+                );
+            }
+            for (code, sev) in &k.new_findings {
+                let _ = writeln!(
+                    o,
+                    "    {}new{r}      {code} {d}({}){r}",
+                    color(*sev, color_on),
+                    sev.as_str()
+                );
+            }
+            for code in &k.fixed_findings {
+                let _ = writeln!(
+                    o,
+                    "    {}fixed{r}    {code}",
+                    verdict_color(Verdict::Improved, color_on)
+                );
+            }
+        }
+        let _ = writeln!(o);
+    }
+    let _ = writeln!(o, "{regressed} regressed, {improved} improved");
+    o
+}
+
+pub fn diff_json(deltas: &[FileDelta]) -> String {
+    let mut o = String::from("{\n  \"diffs\": [\n");
+    for (fi, f) in deltas.iter().enumerate() {
+        let _ = write!(
+            o,
+            "    {{\n      \"baseline\": \"{}\",\n      \"current\": \"{}\",\n      \"kernels\": [\n",
+            esc(&f.baseline),
+            esc(&f.current)
+        );
+        for (ki, k) in f.kernels.iter().enumerate() {
+            let _ = write!(
+                o,
+                "        {{\"name\": \"{}\", \"verdict\": \"{}\", \"blocking\": {}, \"metrics\": [",
+                esc(&k.name),
+                k.verdict.label(),
+                k.blocking_regression()
+            );
+            for (mi, m) in k.metrics.iter().enumerate() {
+                let _ = write!(
+                    o,
+                    "{}{{\"label\": \"{}\", \"before\": {}, \"after\": {}, \"regression\": {}}}",
+                    if mi > 0 { ", " } else { "" },
+                    esc(m.label),
+                    m.before,
+                    m.after,
+                    m.is_regression()
+                );
+            }
+            let new: Vec<String> = k
+                .new_findings
+                .iter()
+                .map(|(c, s)| format!("{{\"code\": \"{c}\", \"severity\": \"{}\"}}", s.as_str()))
+                .collect();
+            let fixed: Vec<String> = k
+                .fixed_findings
+                .iter()
+                .map(|c| format!("\"{c}\""))
+                .collect();
+            let _ = writeln!(
+                o,
+                "], \"new_findings\": [{}], \"fixed_findings\": [{}]}}{}",
+                new.join(", "),
+                fixed.join(", "),
+                if ki + 1 < f.kernels.len() { "," } else { "" }
+            );
+        }
+        let _ = write!(
+            o,
+            "      ]\n    }}{}\n",
+            if fi + 1 < deltas.len() { "," } else { "" }
+        );
+    }
+    let reg = deltas
+        .iter()
+        .flat_map(|f| &f.kernels)
+        .filter(|k| k.verdict == Verdict::Regressed)
+        .count();
+    let imp = deltas
+        .iter()
+        .flat_map(|f| &f.kernels)
+        .filter(|k| k.verdict == Verdict::Improved)
+        .count();
+    let blocking = deltas.iter().any(|f| f.blocking_regression());
+    let _ = write!(
+        o,
+        "  ],\n  \"summary\": {{\"regressed\": {reg}, \"improved\": {imp}, \"blocking\": {blocking}}}\n}}\n"
+    );
+    o
+}
