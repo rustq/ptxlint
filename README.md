@@ -4,7 +4,7 @@
 
 `ptxlint` is a static analyser for NVIDIA PTX. It reads the `.ptx` your GPU kernels already compile to and reports local memory traffic, FP64 use, register pressure, shared memory budget and estimated occupancy. It needs no GPU, no CUDA install and no dependencies, so a kernel performance regression can fail CI on a machine that has never seen a graphics card.
 
-针对 NVIDIA PTX 的静态分析工具 —— 直接读取 GPU kernel 编译出的 `.ptx`，报告 local memory 流量、FP64 使用、寄存器压力、shared memory 预算与估算占用率。不需要显卡、不需要安装 CUDA、零依赖，因此 kernel 的性能回归可以在一台从没见过显卡的机器上卡住 CI。
+NVIDIA PTX 静态分析工具 —— 读取 kernel 编译出的 `.ptx`，报告 local memory、FP64、寄存器压力与占用率。不需要显卡和 CUDA，性能回归能直接在 CI 上卡住。
 
 ---
 
