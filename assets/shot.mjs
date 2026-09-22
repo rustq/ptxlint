@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 
 const code = readFileSync(new URL('./promo.txt', import.meta.url), 'utf8').trimEnd();
 const params = new URLSearchParams({
-  bg: 'rgba(125,90,255,1)',
+  bg: 'rgba(0,0,0,0)',
   t: 'dracula-pro',
   wt: 'none',
   l: 'application/x-sh',
@@ -30,11 +30,18 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROME,
   args: ['--no-sandbox'],
 });
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
+const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2, acceptDownloads: true });
 await page.goto('https://carbon.now.sh/?' + params.toString(), { waitUntil: 'networkidle', timeout: 90000 });
 const frame = page.locator('#export-container');
 await frame.waitFor({ timeout: 60000 });
 await page.waitForTimeout(2500); // fonts
-await frame.screenshot({ path: process.argv[2] || 'promo.png', omitBackground: false });
+// Carbon's own PNG export keeps the alpha channel; a page screenshot would
+// pick up the page colour behind a transparent background.
+await page.click('#export-menu');
+const [download] = await Promise.all([
+  page.waitForEvent('download', { timeout: 60000 }),
+  page.click('#export-png'),
+]);
+await download.saveAs(process.argv[2] || 'promo.png');
 await browser.close();
 console.log('ok');

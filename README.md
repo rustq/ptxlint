@@ -1,12 +1,12 @@
 # PTX Lint
 
+![ptxlint](assets/promo.png)
+
 [![license](https://img.shields.io/badge/license-MIT-cyan)](https://opensource.org/licenses/MIT) ![rust](https://img.shields.io/badge/rust-1.75%2B-lightgreen) ![dependencies](https://img.shields.io/badge/dependencies-0-purple) [![crates](https://img.shields.io/crates/v/ptxlint)](https://crates.io/crates/ptxlint) [![docs](https://img.shields.io/docsrs/ptxlint)](https://docs.rs/ptxlint) [![downloads](https://img.shields.io/crates/d/ptxlint)](https://crates.io/crates/ptxlint) [![CI](https://github.com/rustq/ptxlint/actions/workflows/ci.yml/badge.svg)](https://github.com/rustq/ptxlint/actions/workflows/ci.yml)
 
 `ptxlint` reads the `.ptx` your GPU kernels compile to and reports local memory, FP64 use, register pressure and occupancy. No GPU, no CUDA install, no dependencies.
 
 NVIDIA PTX 静态分析工具 —— 读取 kernel 编译出的 `.ptx`，报告 local memory、FP64、寄存器压力与占用率。不需要显卡和 CUDA。
-
-![ptxlint](assets/promo.png)
 
 ---
 
