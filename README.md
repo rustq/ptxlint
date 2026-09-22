@@ -10,21 +10,19 @@ NVIDIA PTX 静态分析工具 —— 读取 kernel 编译出的 `.ptx`，报告 
 
 ## Quick Start
 
-### 1. Install
-
-With cargo:
+install via cargo
 
 ```shell
 cargo install ptxlint
 ```
 
-Or with Homebrew:
+install via brew
 
 ```shell
 brew install rustq/tap/ptxlint
 ```
 
-### 2. Run
+run
 
 ```shell
 ptxlint -h
