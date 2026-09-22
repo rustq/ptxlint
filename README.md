@@ -6,6 +6,8 @@
 
 NVIDIA PTX 静态分析工具 —— 读取 kernel 编译出的 `.ptx`，报告 local memory、FP64、寄存器压力与占用率。不需要显卡和 CUDA。
 
+![ptxlint](assets/promo.png)
+
 ---
 
 ## ⚡ Quick Start

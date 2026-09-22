@@ -10,7 +10,7 @@ categories = ["development-tools", "command-line-utilities"]
 repository = "https://github.com/rustq/ptxlint"
 readme = "README.md"
 authors = ["meloalright"]
-exclude = ["fixtures/target", "/.github"]
+exclude = ["fixtures/target", "/.github", "/assets"]
 
 [dependencies]
 
