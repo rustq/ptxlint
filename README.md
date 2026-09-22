@@ -8,35 +8,20 @@ NVIDIA PTX 静态分析工具 —— 读取 kernel 编译出的 `.ptx`，报告 
 
 ---
 
-## What It Is And Why It Exists
-
-Rust can now compile kernels to PTX, but nothing tells you that the array you just wrote landed in DRAM instead of registers. That kind of mistake is invisible in the source: whether a scratch array stays in registers depends on how it is indexed and on whether the loop got unrolled, not on how the Rust reads. It usually surfaces much later, on a machine with a GPU, long after the change that caused it.
-
-`ptxlint` moves that feedback earlier. PTX is the first point in the pipeline where the compiler has committed to its decisions — memory space, vector width, instruction types are all fixed — and it is still typed, readable text. Analysing it needs nothing from NVIDIA, so the same check runs on a laptop, in review, and on a CI runner with no GPU attached.
-
-> [!NOTE]
-> Every Rust GPU toolchain ends at PTX — the in-tree `nvptx64-nvidia-cuda` target, rust-cuda, and NVIDIA's cuda-oxide alike. A tool that reads the common output works regardless of which one you picked.
-
----
-
-## What You Get
-
-| Capability | What It Detects | Why It Matters |
-| --- | --- | --- |
-| Lints | Local memory, spills, FP64, integer division, register pressure, shared memory, narrow accesses, launch bounds, stray calls | Ten specific mistakes with a fix for each, not a wall of statistics |
-| Occupancy model | Register, shared-memory, warp and block limits per architecture | Tells you which resource is capping residency, so you tune the right one |
-| Baseline diff | Metric deltas between two builds of the same kernels | Answers "did my change make it worse", which is the question review actually asks |
-| ptxas integration | Exact register counts and spill bytes | Turns the estimates into measurements when a CUDA toolkit is available |
-| CI gating | Per-lint and per-regression exit codes | Fails the build on the findings you chose, and only those |
-
----
-
 ## Quick Start
 
 ### 1. Install
 
+With cargo:
+
 ```shell
 cargo install ptxlint
+```
+
+Or with Homebrew:
+
+```shell
+brew install rustq/tap/ptxlint
 ```
 
 ### 2. Build your kernels to PTX
@@ -64,6 +49,29 @@ A file, a directory, or `-` for stdin. Add `--json` for machine-readable output,
 
 > [!TIP]
 > If your build machine has CUDA but your lint job does not, save the `ptxas -v` log there and replay it with `--ptxas-report build.log`.
+
+---
+
+## What It Is And Why It Exists
+
+Rust can now compile kernels to PTX, but nothing tells you that the array you just wrote landed in DRAM instead of registers. That kind of mistake is invisible in the source: whether a scratch array stays in registers depends on how it is indexed and on whether the loop got unrolled, not on how the Rust reads. It usually surfaces much later, on a machine with a GPU, long after the change that caused it.
+
+`ptxlint` moves that feedback earlier. PTX is the first point in the pipeline where the compiler has committed to its decisions — memory space, vector width, instruction types are all fixed — and it is still typed, readable text. Analysing it needs nothing from NVIDIA, so the same check runs on a laptop, in review, and on a CI runner with no GPU attached.
+
+> [!NOTE]
+> Every Rust GPU toolchain ends at PTX — the in-tree `nvptx64-nvidia-cuda` target, rust-cuda, and NVIDIA's cuda-oxide alike. A tool that reads the common output works regardless of which one you picked.
+
+---
+
+## What You Get
+
+| Capability | What It Detects | Why It Matters |
+| --- | --- | --- |
+| Lints | Local memory, spills, FP64, integer division, register pressure, shared memory, narrow accesses, launch bounds, stray calls | Ten specific mistakes with a fix for each, not a wall of statistics |
+| Occupancy model | Register, shared-memory, warp and block limits per architecture | Tells you which resource is capping residency, so you tune the right one |
+| Baseline diff | Metric deltas between two builds of the same kernels | Answers "did my change make it worse", which is the question review actually asks |
+| ptxas integration | Exact register counts and spill bytes | Turns the estimates into measurements when a CUDA toolkit is available |
+| CI gating | Per-lint and per-regression exit codes | Fails the build on the findings you chose, and only those |
 
 ---
 
