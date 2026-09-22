@@ -148,6 +148,12 @@ Each case in `fixtures/examples/` is a real Rust kernel that compiles to its own
 ./fixtures/generate.sh
 ```
 
+`showcase.sh` walks through every feature against the cases, and is what the [Showcase](https://github.com/rustq/ptxlint/actions/workflows/ci.yml) step in CI runs — the log is a live demo on a runner with no GPU.
+
+```shell
+cargo build --release && ./showcase.sh
+```
+
 Prior art: [cuda-sage](https://github.com/hkevin01/cuda-sage) is a Python static PTX analyser covering similar ground, and the baseline diff idea came from it.
 
 ## License
