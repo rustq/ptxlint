@@ -85,7 +85,7 @@ jobs:
 
       # Prints every feature against the cases. The log is the demo: this
       # runner has no GPU and no CUDA, which is the situation ptxlint is for.
-      - name: showcase
+      - name: Showcase
         run: ./showcase.sh
 
   # The .ptx fixtures are generated from Rust; make sure that still compiles.
