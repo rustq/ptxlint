@@ -24,31 +24,11 @@ Or with Homebrew:
 brew install rustq/tap/ptxlint
 ```
 
-### 2. Build your kernels to PTX
+### 2. Run
 
 ```shell
-cargo build --release --target nvptx64-nvidia-cuda
+ptxlint -h
 ```
-
-### 3. Analyse
-
-```shell
-ptxlint target/nvptx64-nvidia-cuda/release/my_kernels.ptx
-```
-
-```
-  local_array  line 5
-    arch sm_70   regs/thread 176 (virtual, upper bound)   shared 0 B   local 256 B
-    occupancy 12% (8 of 64 warps/SM, 1 blocks/SM @ 256 threads/block, assumed; limited by registers)
-    198 instructions  ·  fp32 10  ·  int 23  ·  branch 1  ·  global 65  ·  local 72  ·  param 3
-    error   256 bytes of local memory, 72 local accesses — this lives in DRAM, not registers [PTX001:42]
-            An array indexed by a runtime value cannot stay in registers. Use a fixed index, unroll the loop, or move the array to shared memory.
-```
-
-A file, a directory, or `-` for stdin. Add `--json` for machine-readable output, `--arch sm_89` to override the target, and `--ptxas` to get exact register counts when CUDA is installed.
-
-> [!TIP]
-> If your build machine has CUDA but your lint job does not, save the `ptxas -v` log there and replay it with `--ptxas-report build.log`.
 
 ---
 
