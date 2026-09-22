@@ -8,7 +8,7 @@ NVIDIA PTX 静态分析工具 —— 读取 kernel 编译出的 `.ptx`，报告 
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
 install via cargo
 
